@@ -296,33 +296,6 @@ func (u *UserToUpdate) validatedRequest() (map[string]interface{}, error) {
 	return req, nil
 }
 
-// RevokeRefreshTokens revokes all refresh tokens issued to a user.
-//
-// RevokeRefreshTokens updates the user's TokensValidAfterMillis to the current UTC second.
-// It is important that the server on which this is called has its clock set correctly and synchronized.
-//
-// While this revokes all sessions for a specified user and disables any new ID tokens for existing sessions
-// from getting minted, existing ID tokens may remain active until their natural expiration (one hour).
-// To verify that ID tokens are revoked, use `verifyIdTokenAndCheckRevoked(ctx, idToken)`.
-func (c *Client) RevokeRefreshTokens(ctx context.Context, uid string) error {
-	return c.updateUser(ctx, uid, (&UserToUpdate{}).revokeRefreshTokens())
-}
-
-// SetCustomUserClaims sets additional claims on an existing user account.
-//
-// Custom claims set via this function can be used to define user roles and privilege levels.
-// These claims propagate to all the devices where the user is already signed in (after token
-// expiration or when token refresh is forced), and next time the user signs in. The claims
-// can be accessed via the user's ID token JWT. If a reserved OIDC claim is specified (sub, iat,
-// iss, etc), an error is thrown. Claims payload must also not be larger then 1000 characters
-// when serialized into a JSON string.
-func (c *Client) SetCustomUserClaims(ctx context.Context, uid string, customClaims map[string]interface{}) error {
-	if customClaims == nil || len(customClaims) == 0 {
-		customClaims = map[string]interface{}{}
-	}
-	return c.updateUser(ctx, uid, (&UserToUpdate{}).CustomClaims(customClaims))
-}
-
 func marshalCustomClaims(claims map[string]interface{}) (string, error) {
 	for _, key := range reservedClaims {
 		if _, ok := claims[key]; ok {
@@ -498,7 +471,7 @@ func validatePhone(phone string) error {
 
 // End of validators
 
-const idToolkitEndpoint = "https://identitytoolkit.googleapis.com/v1/projects"
+const idToolkitV1Endpoint = "https://identitytoolkit.googleapis.com/v1"
 
 // userManagementClient is a helper for interacting with the Identity Toolkit REST API.
 type userManagementClient struct {
@@ -737,6 +710,34 @@ func (c *userManagementClient) DeleteUser(ctx context.Context, uid string) error
 	return nil
 }
 
+// RevokeRefreshTokens revokes all refresh tokens issued to a user.
+//
+// RevokeRefreshTokens updates the user's TokensValidAfterMillis to the current UTC second.
+// It is important that the server on which this is called has its clock set correctly and synchronized.
+//
+// While this revokes all sessions for a specified user and disables any new ID tokens for existing sessions
+// from getting minted, existing ID tokens may remain active until their natural expiration (one hour).
+// To verify that ID tokens are revoked, use `verifyIdTokenAndCheckRevoked(ctx, idToken)`.
+func (c *userManagementClient) RevokeRefreshTokens(ctx context.Context, uid string) error {
+	return c.updateUser(ctx, uid, (&UserToUpdate{}).revokeRefreshTokens())
+}
+
+// SetCustomUserClaims sets additional claims on an existing user account.
+//
+// Custom claims set via this function can be used to define user roles and privilege levels.
+// These claims propagate to all the devices where the user is already signed in (after token
+// expiration or when token refresh is forced), and next time the user signs in. The claims
+// can be accessed via the user's ID token JWT. If a reserved OIDC claim is specified (sub, iat,
+// iss, etc), an error is thrown. Claims payload must also not be larger then 1000 characters
+// when serialized into a JSON string.
+func (c *userManagementClient) SetCustomUserClaims(
+	ctx context.Context, uid string, customClaims map[string]interface{}) error {
+	if customClaims == nil || len(customClaims) == 0 {
+		customClaims = map[string]interface{}{}
+	}
+	return c.updateUser(ctx, uid, (&UserToUpdate{}).CustomClaims(customClaims))
+}
+
 // SessionCookie creates a new Firebase session cookie from the given ID token and expiry
 // duration. The returned JWT can be set as a server-side session cookie with a custom cookie
 // policy. Expiry duration must be at least 5 minutes but may not exceed 14 days.
@@ -796,7 +797,7 @@ func (c *userManagementClient) newRequest(method, path string) (*internal.Reques
 	versionHeader := internal.WithHeader("X-Client-Version", c.version)
 	return &internal.Request{
 		Method: method,
-		URL:    fmt.Sprintf("%s/%s%s", c.baseURL, c.projectID, path),
+		URL:    fmt.Sprintf("%s/projects/%s%s", c.baseURL, c.projectID, path),
 		Opts:   []internal.HTTPOption{versionHeader},
 	}, nil
 }

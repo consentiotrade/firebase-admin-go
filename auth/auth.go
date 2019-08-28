@@ -45,6 +45,7 @@ type Client struct {
 	cookieVerifier  *tokenVerifier
 	signer          cryptoSigner
 	clock           internal.Clock
+	TenantManager   *TenantManager
 }
 
 // NewClient creates a new instance of the Firebase Auth Client.
@@ -100,7 +101,7 @@ func NewClient(ctx context.Context, conf *internal.AuthConfig) (*Client, error) 
 	version := "Go/Admin/" + conf.Version
 	return &Client{
 		userManagementClient: userManagementClient{
-			baseURL:    idToolkitEndpoint,
+			baseURL:    idToolkitV1Endpoint,
 			projectID:  conf.ProjectID,
 			version:    version,
 			httpClient: hc,
@@ -109,6 +110,12 @@ func NewClient(ctx context.Context, conf *internal.AuthConfig) (*Client, error) 
 		cookieVerifier:  cookieVerifier,
 		signer:          signer,
 		clock:           internal.SystemClock,
+		TenantManager: &TenantManager{
+			baseURL:    idToolkitV2Beta1Endpoint,
+			projectID:  conf.ProjectID,
+			version:    version,
+			httpClient: hc,
+		},
 	}, nil
 }
 
