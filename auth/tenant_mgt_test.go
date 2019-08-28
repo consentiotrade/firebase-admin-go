@@ -44,14 +44,6 @@ func TestAuthForTenant(t *testing.T) {
 	}
 }
 
-func TestTenantManagerEmptyProjectID(t *testing.T) {
-	tm := &TenantManager{}
-	tc, err := tm.Tenant(context.Background(), "my-tenant")
-	if tc != nil || err == nil {
-		t.Errorf("Tenant() = (%v, %v); want = (nil, error)", tc, err)
-	}
-}
-
 func TestTenantEmptyTenantID(t *testing.T) {
 	tm := &TenantManager{}
 	tc, err := tm.Tenant(context.Background(), "")
@@ -60,7 +52,7 @@ func TestTenantEmptyTenantID(t *testing.T) {
 	}
 }
 
-func TestGetTenant(t *testing.T) {
+func TestTenant(t *testing.T) {
 	resp := `{
 		"name": "projects/mock-project-id/tenant/my-tenant",
 		"displayName": "My Tenant"
@@ -77,9 +69,6 @@ func TestGetTenant(t *testing.T) {
 	want := &Tenant{
 		ID:          "my-tenant",
 		DisplayName: "My Tenant",
-		EmailSignInConfig: &EmailSignInConfig{
-			PasswordRequired: true,
-		},
 	}
 	if !reflect.DeepEqual(tenant, want) {
 		t.Errorf("Tenant() = %#v; want = %#v", tenant, want)
@@ -91,7 +80,7 @@ func TestGetTenant(t *testing.T) {
 	}
 }
 
-func TestGetTenantWithEmailSignInConfig(t *testing.T) {
+func TestTenantWithEmailSignInConfig(t *testing.T) {
 	resp := `{
 		"name": "projects/mock-project-id/tenant/my-tenant",
 		"displayName": "My Tenant",
@@ -108,12 +97,10 @@ func TestGetTenantWithEmailSignInConfig(t *testing.T) {
 	}
 
 	want := &Tenant{
-		ID:          "my-tenant",
-		DisplayName: "My Tenant",
-		EmailSignInConfig: &EmailSignInConfig{
-			Enabled:          true,
-			PasswordRequired: false,
-		},
+		ID:                    "my-tenant",
+		DisplayName:           "My Tenant",
+		AllowPasswordSignUp:   true,
+		EnableEmailLinkSignIn: true,
 	}
 	if !reflect.DeepEqual(tenant, want) {
 		t.Errorf("Tenant() = %#v; want = %#v", tenant, want)
@@ -125,7 +112,7 @@ func TestGetTenantWithEmailSignInConfig(t *testing.T) {
 	}
 }
 
-func TestGetTenantNotFoundError(t *testing.T) {
+func TestTenantNotFoundError(t *testing.T) {
 	resp := `{
 		"error": {
 			"status": "NOT_FOUND",
@@ -146,6 +133,14 @@ func TestGetTenantNotFoundError(t *testing.T) {
 	if !internal.HasErrorCode(err, "NOT_FOUND") {
 		fe := err.(*internal.FirebaseError)
 		t.Errorf("ErrorCode = %q; want = %q", fe.Code, "NOT_FOUND")
+	}
+}
+
+func TestTenantManagerEmptyProjectID(t *testing.T) {
+	tm := &TenantManager{}
+	tc, err := tm.Tenant(context.Background(), "my-tenant")
+	if tc != nil || err == nil {
+		t.Errorf("Tenant() = (%v, %v); want = (nil, error)", tc, err)
 	}
 }
 

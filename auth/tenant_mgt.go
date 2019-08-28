@@ -37,15 +37,10 @@ func (tc *TenantClient) TenantID() string {
 
 // Tenant represents a Firebase Auth tenant.
 type Tenant struct {
-	ID                string
-	DisplayName       string
-	EmailSignInConfig *EmailSignInConfig
-}
-
-// EmailSignInConfig represents the email sign-in provider configuration.
-type EmailSignInConfig struct {
-	Enabled          bool
-	PasswordRequired bool
+	ID                    string `json:"name"`
+	DisplayName           string `json:"displayName"`
+	AllowPasswordSignUp   bool   `json:"allowPasswordSignup"`
+	EnableEmailLinkSignIn bool   `json:"enableEmailLinkSignin"`
 }
 
 const idToolkitV2Beta1Endpoint = "https://identitytoolkit.googleapis.com/v2beta1"
@@ -74,24 +69,13 @@ func (tm *TenantManager) Tenant(ctx context.Context, tenantID string) (*Tenant, 
 	}
 
 	path := fmt.Sprintf("/tenants/%s", tenantID)
-	var resp struct {
-		Name                  string `json:"name"`
-		DisplayName           string `json:"displayName"`
-		AllowPasswordSignUp   bool   `json:"allowPasswordSignup"`
-		EnableEmailLinkSignIn bool   `json:"enableEmailLinkSignin"`
-	}
-	if err := tm.makeRequest(ctx, http.MethodGet, path, &resp); err != nil {
+	var tenant Tenant
+	if err := tm.makeRequest(ctx, http.MethodGet, path, &tenant); err != nil {
 		return nil, err
 	}
 
-	return &Tenant{
-		ID:          extractResourceID(resp.Name),
-		DisplayName: resp.DisplayName,
-		EmailSignInConfig: &EmailSignInConfig{
-			Enabled:          resp.AllowPasswordSignUp,
-			PasswordRequired: !resp.EnableEmailLinkSignIn,
-		},
-	}, nil
+	tenant.ID = extractResourceID(tenant.ID)
+	return &tenant, nil
 }
 
 func (tm *TenantManager) makeRequest(
