@@ -16,8 +16,11 @@ package auth
 
 import (
 	"context"
+	"net/http"
 	"reflect"
 	"testing"
+
+	"firebase.google.com/go/internal"
 )
 
 func TestAuthForTenantEmptyTenantID(t *testing.T) {
@@ -85,5 +88,87 @@ func TestGetTenant(t *testing.T) {
 	wantURL := "/projects/mock-project-id/tenants/my-tenant"
 	if s.Req[0].URL.Path != wantURL {
 		t.Errorf("Tenant() URL = %q; want = %q", s.Req[0].URL.Path, wantURL)
+	}
+}
+
+func TestGetTenantWithEmailSignInConfig(t *testing.T) {
+	resp := `{
+		"name": "projects/mock-project-id/tenant/my-tenant",
+		"displayName": "My Tenant",
+		"allowPasswordSignup": true,
+		"enableEmailLinkSignin": true
+	}`
+	s := echoServer([]byte(resp), t)
+	defer s.Close()
+
+	tm := s.Client.TenantManager
+	tenant, err := tm.Tenant(context.Background(), "my-tenant")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := &Tenant{
+		ID:          "my-tenant",
+		DisplayName: "My Tenant",
+		EmailSignInConfig: &EmailSignInConfig{
+			Enabled:          true,
+			PasswordRequired: false,
+		},
+	}
+	if !reflect.DeepEqual(tenant, want) {
+		t.Errorf("Tenant() = %#v; want = %#v", tenant, want)
+	}
+
+	wantURL := "/projects/mock-project-id/tenants/my-tenant"
+	if s.Req[0].URL.Path != wantURL {
+		t.Errorf("Tenant() URL = %q; want = %q", s.Req[0].URL.Path, wantURL)
+	}
+}
+
+func TestGetTenantNotFoundError(t *testing.T) {
+	resp := `{
+		"error": {
+			"status": "NOT_FOUND",
+			"message": "Requested resource not found"
+		}
+	}`
+	s := echoServer([]byte(resp), t)
+	defer s.Close()
+	s.Status = http.StatusNotFound
+	want := "Requested resource not found"
+
+	tm := s.Client.TenantManager
+	tenant, err := tm.Tenant(context.Background(), "my-tenant")
+	if tenant != nil || err == nil || err.Error() != want {
+		t.Errorf("Tenant() = (%v, %v); want = (nil, %q)", tenant, err, want)
+	}
+
+	if !internal.HasErrorCode(err, "NOT_FOUND") {
+		fe := err.(*internal.FirebaseError)
+		t.Errorf("ErrorCode = %q; want = %q", fe.Code, "NOT_FOUND")
+	}
+}
+
+func TestTenantManagerTransportError(t *testing.T) {
+	s := echoServer([]byte(`{}`), t)
+	s.Close()
+
+	tm := s.Client.TenantManager
+	tm.httpClient.RetryConfig = nil
+	tenant, err := tm.Tenant(context.Background(), "my-tenant")
+	if tenant != nil || err == nil {
+		t.Errorf("Tenant() = (%v, %v); want = (nil, error)", tenant, err)
+	}
+}
+
+func TestTenantManagerJsonParseError(t *testing.T) {
+	s := echoServer([]byte(`not json`), t)
+	defer s.Close()
+
+	tm := s.Client.TenantManager
+	tm.httpClient.RetryConfig = nil
+	tenant, err := tm.Tenant(context.Background(), "my-tenant")
+	if tenant != nil || err == nil {
+		t.Errorf("Tenant() = (%v, %v); want = (nil, error)", tenant, err)
 	}
 }

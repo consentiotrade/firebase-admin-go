@@ -73,34 +73,31 @@ func (tm *TenantManager) Tenant(ctx context.Context, tenantID string) (*Tenant, 
 		return nil, errors.New("tenant id must not be empty")
 	}
 
-	resp, err := tm.makeRequest(ctx, http.MethodGet, fmt.Sprintf("/tenants/%s", tenantID))
-	if err != nil {
-		return nil, err
-	}
-
-	var parsed struct {
+	path := fmt.Sprintf("/tenants/%s", tenantID)
+	var resp struct {
 		Name                  string `json:"name"`
 		DisplayName           string `json:"displayName"`
 		AllowPasswordSignUp   bool   `json:"allowPasswordSignup"`
 		EnableEmailLinkSignIn bool   `json:"enableEmailLinkSignin"`
 	}
-	if err := json.Unmarshal(resp.Body, &parsed); err != nil {
+	if err := tm.makeRequest(ctx, http.MethodGet, path, &resp); err != nil {
 		return nil, err
 	}
 
 	return &Tenant{
-		ID:          extractResourceID(parsed.Name),
-		DisplayName: parsed.DisplayName,
+		ID:          extractResourceID(resp.Name),
+		DisplayName: resp.DisplayName,
 		EmailSignInConfig: &EmailSignInConfig{
-			Enabled:          parsed.AllowPasswordSignUp,
-			PasswordRequired: !parsed.EnableEmailLinkSignIn,
+			Enabled:          resp.AllowPasswordSignUp,
+			PasswordRequired: !resp.EnableEmailLinkSignIn,
 		},
 	}, nil
 }
 
-func (tm *TenantManager) makeRequest(ctx context.Context, method, path string) (*internal.Response, error) {
+func (tm *TenantManager) makeRequest(
+	ctx context.Context, method, path string, parsed interface{}) error {
 	if tm.projectID == "" {
-		return nil, errors.New("project id not available")
+		return errors.New("project id not available")
 	}
 
 	versionHeader := internal.WithHeader("X-Client-Version", tm.version)
@@ -112,17 +109,29 @@ func (tm *TenantManager) makeRequest(ctx context.Context, method, path string) (
 
 	resp, err := tm.httpClient.Do(ctx, req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if resp.Status != http.StatusOK {
-		// TODO: Handle platform error
-		return nil, handleHTTPError(resp)
+		return handlePlatformError(resp)
 	}
-	return resp, nil
+
+	return json.Unmarshal(resp.Body, &parsed)
 }
 
 func extractResourceID(resourceName string) string {
 	segments := strings.Split(resourceName, "/")
 	return segments[len(segments)-1]
+}
+
+func handlePlatformError(resp *internal.Response) error {
+	var httpErr struct {
+		Error struct {
+			Status  string `json:"status"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	json.Unmarshal(resp.Body, &httpErr) // ignore any json parse errors at this level
+	serverCode := httpErr.Error.Status
+	return internal.Errorf(serverCode, httpErr.Error.Message)
 }
