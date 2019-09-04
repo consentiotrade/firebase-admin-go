@@ -66,6 +66,7 @@ func newProviderConfigClient(hc *http.Client, conf *internal.AuthConfig) *provid
 	}
 }
 
+// SAMLProviderConfig looks up the SAML provider configuration with given ID.
 func (c *providerConfigClient) SAMLProviderConfig(ctx context.Context, id string) (*SAMLProviderConfig, error) {
 	if !strings.HasPrefix(id, "saml.") {
 		return nil, fmt.Errorf("invalid SAML provider config id: %q", id)
