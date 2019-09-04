@@ -940,7 +940,8 @@ func checkCookieVerifier(tv *tokenVerifier, projectID string) error {
 	return nil
 }
 
-func checkUserManagementClient(client *Client, wantProjectID string) error {
+func checkUserManagementClient(authClient *Client, wantProjectID string) error {
+	client := authClient.userManagementClient
 	if client.baseURL != idToolkitV1Endpoint {
 		return fmt.Errorf("baseURL = %q; want = %q", client.baseURL, idToolkitV1Endpoint)
 	}

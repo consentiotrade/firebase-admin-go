@@ -1150,7 +1150,7 @@ func TestSessionCookieLongExpiresIn(t *testing.T) {
 func TestHTTPError(t *testing.T) {
 	s := echoServer([]byte(`{"error":"test"}`), t)
 	defer s.Close()
-	s.Client.httpClient.RetryConfig = nil
+	s.Client.userManagementClient.httpClient.RetryConfig = nil
 	s.Status = http.StatusInternalServerError
 
 	u, err := s.Client.GetUser(context.Background(), "some uid")
@@ -1176,7 +1176,7 @@ func TestHTTPErrorWithCode(t *testing.T) {
 	}
 	s := echoServer(nil, t)
 	defer s.Close()
-	s.Client.httpClient.RetryConfig = nil
+	s.Client.userManagementClient.httpClient.RetryConfig = nil
 	s.Status = http.StatusInternalServerError
 
 	for code, check := range errorCodes {
@@ -1271,6 +1271,7 @@ func echoServer(resp interface{}, t *testing.T) *mockAuthServer {
 		t.Fatal(err)
 	}
 	authClient.baseURL = s.Srv.URL
+	authClient.providerConfigClient.providerConfigEndpoint = s.Srv.URL
 	s.Client = authClient
 	return &s
 }

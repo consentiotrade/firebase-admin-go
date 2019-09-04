@@ -41,6 +41,7 @@ var reservedClaims = []string{
 // by Firebase backend services.
 type Client struct {
 	userManagementClient
+	*providerConfigClient
 	idTokenVerifier *tokenVerifier
 	cookieVerifier  *tokenVerifier
 	signer          cryptoSigner
@@ -99,6 +100,7 @@ func NewClient(ctx context.Context, conf *internal.AuthConfig) (*Client, error) 
 
 	return &Client{
 		userManagementClient: *userMgt,
+		providerConfigClient: newProviderConfigClient(userMgt.httpClient.Client, conf),
 		idTokenVerifier:      idTokenVerifier,
 		cookieVerifier:       cookieVerifier,
 		signer:               signer,
