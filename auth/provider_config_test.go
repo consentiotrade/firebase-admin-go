@@ -52,22 +52,22 @@ func TestSAMLProviderConfigNoProjectID(t *testing.T) {
 
 func TestSAMLProviderConfig(t *testing.T) {
 	resp := `{
-            "name":"projects/project_id/inboundSamlConfigs/saml.provider",
-            "idpConfig": {
-                "idpEntityId": "IDP_ENTITY_ID",
-                "ssoUrl": "https://example.com/login",
-                "signRequest": true,
-                "idpCertificates": [
-                    {"x509Certificate": "CERT1"},
-                    {"x509Certificate": "CERT2"}
-                ]
-            },
-            "spConfig": {
-                "spEntityId": "RP_ENTITY_ID",
-                "callbackUri": "https://projectId.firebaseapp.com/__/auth/handler"
-            },
-            "displayName": "samlProviderName",
-            "enabled": true
+               "name":"projects/mock-project-id/inboundSamlConfigs/saml.provider",
+                "idpConfig": {
+                    "idpEntityId": "IDP_ENTITY_ID",
+                    "ssoUrl": "https://example.com/login",
+                    "signRequest": true,
+                    "idpCertificates": [
+                        {"x509Certificate": "CERT1"},
+                        {"x509Certificate": "CERT2"}
+                    ]
+                },
+                "spConfig": {
+                    "spEntityId": "RP_ENTITY_ID",
+                    "callbackUri": "https://projectId.firebaseapp.com/__/auth/handler"
+                },
+                "displayName": "samlProviderName",
+                "enabled": true
         }`
 	s := echoServer([]byte(resp), t)
 	defer s.Close()
@@ -106,7 +106,7 @@ func TestSAMLProviderConfig(t *testing.T) {
 
 func TestSAMLProviderConfigMinimal(t *testing.T) {
 	resp := `{
-            "name":"projects/project_id/inboundSamlConfigs/saml.provider"
+                "name":"projects/project_id/inboundSamlConfigs/saml.provider"
         }`
 	s := echoServer([]byte(resp), t)
 	defer s.Close()

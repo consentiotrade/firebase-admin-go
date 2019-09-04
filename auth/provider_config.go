@@ -26,14 +26,14 @@ import (
 
 const providerConfigEndpoint = "https://identitytoolkit.googleapis.com/v2beta1"
 
-// ProviderConfig is the base configuration common to all providers.
+// ProviderConfig is the base configuration common to all auth providers.
 type ProviderConfig struct {
 	ID          string
 	DisplayName string
 	Enabled     bool
 }
 
-// SAMLProviderconfig represents a SAML auth provider configuration.
+// SAMLProviderConfig represents a SAML auth provider configuration.
 //
 // See http://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.html
 type SAMLProviderConfig struct {
